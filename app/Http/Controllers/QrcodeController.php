@@ -140,6 +140,11 @@ class QrcodeController extends AppBaseController
 
             return redirect(route('qrcodes.index'));
         }
+        if ($request->expectsJson()) {
+            return Response([
+                'data' => new QrcodeResource($qrcode)
+            ], SymfonyResponse::HTTP_OK);
+        }
 
         $transactions = $qrcode->transactions;
         return view('qrcodes.show')->with('qrcode', $qrcode)->with('transactions', $transactions);
