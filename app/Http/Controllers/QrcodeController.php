@@ -14,9 +14,11 @@ use App\Http\Resources\Qrcode as QrcodeResource;
 use App\Models\Transaction;
 use App\Models\User;
 use Auth;
+use ErrorException;
 use Hash;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class QrcodeController extends AppBaseController
 {
@@ -51,7 +53,9 @@ class QrcodeController extends AppBaseController
          * DOC: https://laravel.com/api/5.6/Illuminate/Http/Request.html
          */
         if ($request->expectsJson()) {
-            return QrcodeResource::collection($qrcodes);
+            return response([
+                'data' =>  QrcodeResource::collection($qrcodes)
+            ], SymfonyResponse::HTTP_OK);
         }
         
         return view('qrcodes.index')
@@ -103,7 +107,9 @@ class QrcodeController extends AppBaseController
          * DOC: https://laravel.com/api/5.6/Illuminate/Http/Request.html
          */
         if ($request->expectsJson()) {
-            return new QrcodeResource($getQrcode);
+            return response([
+                'data' => new QrcodeResource($getQrcode)
+            ], SymfonyResponse::HTTP_CREATED);
         }
             return redirect(route('qrcodes.show', ['qrcode'=>$qrcode]));  
             Flash::success('Qrcode saved successfully.');
@@ -121,11 +127,15 @@ class QrcodeController extends AppBaseController
      *
      * @return Response
      */
-    public function show($id)
+    public function show($id, Request $request)
     {
         $qrcode = $this->qrcodeRepository->findWithoutFail($id);
 
         if (empty($qrcode)) {
+            // Throw this error and don't proceed if the request is a JSON request
+            if ($request->expectsJson()) {
+                throw new ErrorException();
+            }
             Flash::error('Qrcode not found');
 
             return redirect(route('qrcodes.index'));
@@ -187,7 +197,7 @@ class QrcodeController extends AppBaseController
      *
      * @return Response
      */
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
         $qrcode = $this->qrcodeRepository->findWithoutFail($id);
 
@@ -198,6 +208,11 @@ class QrcodeController extends AppBaseController
         }
 
         $this->qrcodeRepository->delete($id);
+        if ($request->expectsJson()) {
+            return response([
+                'message'=>'Qrcode Deleted.'
+            ], SymfonyResponse::HTTP_NOT_FOUND);
+        }
 
         Flash::success('Qrcode deleted successfully.');
 
